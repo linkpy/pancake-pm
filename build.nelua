@@ -1,0 +1,9 @@
+
+##[[
+
+ppm = require 'packages/pancake-pm'
+ppm.init(config)
+
+]]
+
+require 'main'
