@@ -4,8 +4,9 @@ local lfs = require 'lfs'
 
 
 local ppm = {}
-ppm.config = nil
+ppm.g = nil
 ppm.update = false
+ppm.cache = {}
 
 
 
@@ -51,15 +52,19 @@ end
 
 
 
-function ppm.init(c)
-	ppm.config = c
+function ppm.init(g)
+	ppm.g = g
 	ppm.update = has_ppm_update_define(c)
 
-	ppm.config.path = ppm.config.path .. ";./sources/?.nelua"
-	ppm.config.path = ppm.config.path .. ";./sources/?/init.nelua"
+	ppm.g.config.path = ppm.g.config.path .. ";./sources/?.nelua"
+	ppm.g.config.path = ppm.g.config.path .. ";./sources/?/init.nelua"
 end
 
 function ppm.package(p)
+	if ppm.cache[p] then
+		return
+	end
+
 	local n = extract_package_name(p)
 
 	if not fs.isdir(fs.join('packages', n)) then
@@ -73,12 +78,21 @@ function ppm.package(p)
 		chdir(fs.join('..', '..'))
 	end
 
-	ppm.config.path = ppm.config.path .. ";./packages/" .. n .. "/sources/?.nelua"
-	ppm.config.path = ppm.config.path .. ";./packages/" .. n .. "/sources/?/init.nelua"
+	ppm.g.config.path = ppm.g.config.path .. ";./packages/" .. n .. "/sources/?.nelua"
+	ppm.g.config.path = ppm.g.config.path .. ";./packages/" .. n .. "/sources/?/init.nelua"
 
 	if fs.isfile(fs.join('packages', n, 'init.lua')) then
 		require('packages.' .. n)
 	end
+
+	ppm.g.inject_astnode(
+		ppm.g.aster.Call{
+			{ppm.g.aster.String{"packages." .. n .. ".build"}}, 
+			ppm.g.aster.Id{"require"}
+		}
+	)
+
+	ppm.cache[p] = true
 end
 
 
