@@ -1,7 +1,8 @@
 
 ##[[
 
-static_assert(false, "This package is not meant to be build.")
+if not PPM_SUB_PACKAGE then
+	static_assert(false, "This package is not meant to be build.")
+end
 
 ]]
-

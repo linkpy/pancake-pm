@@ -54,7 +54,7 @@ end
 
 function ppm.init(g)
 	ppm.g = g
-	ppm.update = has_ppm_update_define(c)
+	ppm.update = has_ppm_update_define(g.config)
 
 	ppm.g.config.path = ppm.g.config.path .. ";./sources/?.nelua"
 	ppm.g.config.path = ppm.g.config.path .. ";./sources/?/init.nelua"
@@ -85,12 +85,15 @@ function ppm.package(p)
 		require('packages.' .. n)
 	end
 
+
+	ppm.g.PPM_SUB_PACKAGE = true
 	ppm.g.inject_astnode(
 		ppm.g.aster.Call{
 			{ppm.g.aster.String{"packages." .. n .. ".build"}}, 
 			ppm.g.aster.Id{"require"}
 		}
 	)
+	ppm.g.PPM_SUB_PACKAGE = nil
 
 	ppm.cache[p] = true
 end

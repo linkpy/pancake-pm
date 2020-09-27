@@ -62,7 +62,7 @@ local function initialize(p)
 
 	file:write("\n##[[\n\n")
 	file:write("ppm = require 'packages/pancake-pm'\n")
-	file:write("ppm.init(config)\n")
+	file:write("ppm.init(_ENV)\n")
 	file:write("ppm.package('linkpy/pancake-pm')\n\n]]\n\n")
 	file:write("require 'main'")
 	file:flush()
