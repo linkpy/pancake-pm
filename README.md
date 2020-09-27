@@ -37,3 +37,5 @@ In the generate `build.nelua`, to add a new package just add :
 This will fetch the package from `https://github.com/username/repo-name.git`.
 
 If the package has the file `package-name/sources/myfile.nelua`, it can be loaded by doing `require 'myfile'`.
+
+If the package is loaded by another package, the global PPM_SUB_PACKAGE will be set to true in the preprocessor.
