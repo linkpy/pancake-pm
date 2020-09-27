@@ -103,7 +103,17 @@ local function initialize(p)
 end
 
 local function update(p)
-	chdir(p)
+	chdir(p .. "/packages/pancake-pm")
+	local status, errstr, errno = os.excute("git pull")
+
+	if not status then
+		print("Failed to update PPM :")
+		print(errstr)
+		os.exit(1)
+	end
+
+
+	chdir("../..")
 
 	local status, errstr, errno = os.execute("nelua -a -DPPM_UPDATE build.nelua")
 
@@ -112,8 +122,6 @@ local function update(p)
 		print(errstr)
 		os.exit(1)
 	end
-
-	chdir('../..')
 end
 
 local function build(p)
@@ -126,8 +134,6 @@ local function build(p)
 		print(errstr)
 		os.exit(1)
 	end
-
-	chdir('../..')
 end
 
 
