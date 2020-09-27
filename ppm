@@ -2,4 +2,4 @@
 
 cd $(dirname "$0")
 
-nelua-lua sources/main.lua $@
+nelua --script sources/main.lua $@

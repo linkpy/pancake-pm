@@ -1,5 +1,7 @@
 
 
+local lfs = require 'lfs'
+
 
 local function git_clone(url, path)
 	local status, errstr, errno = os.execute(string.format("git clone %s %s", url, path))
@@ -11,6 +13,10 @@ local function git_clone(url, path)
 	end
 end
 
+local function chdir(p)
+	lfs.chdir(p)
+end
+
 
 
 
@@ -20,6 +26,7 @@ local function print_usage()
 	print("Commands :")
 	print("  init : Initialize a new package in [package_path].")
 	print("  update : Updates the dependencies of [package_path].")
+	print("  build : Build the package at [package_path].")
 	print("")
 	print("Package path :")
 	print("  Path to the package. By default, '.'.")
@@ -75,7 +82,31 @@ local function initialize(p)
 end
 
 local function update(p)
+	chdir(p)
 
+	local status, errstr, errno = os.execute("nelua -a -DPPM_UPDATE build.nelua")
+
+	if not status then
+		print("Failed to update packages :")
+		print(errstr)
+		os.exit(1)
+	end
+
+	chdir('../..')
+end
+
+local function build(p)
+	chdir(p)
+
+	local status, errstr, errno = os.execute("nelua build.nelua")
+
+	if not status then
+		print("Failed to build packages :")
+		print(errstr)
+		os.exit(1)
+	end
+
+	chdir('../..')
 end
 
 
@@ -84,20 +115,15 @@ end
 
 
 
-
-for i, v in ipairs(arg) do
-	print(i, v)
-end
-
-if #arg <= 1 or #arg >= 3 then
+if #arg < 3 or #arg > 4 then
 	print_usage()
 end
 
-local command = arg[1]
+local command = arg[3]
 local path = '.'
 
-if #arg == 2 then
-	path = arg[2]
+if #arg == 4 then
+	path = arg[4]
 end
 
 
@@ -105,6 +131,8 @@ if command == "init" then
 	initialize(path)
 elseif command == "update" then
 	update(path)
+elseif command == "build" then
+	build(path)
 else
 	print_usage()
 end
