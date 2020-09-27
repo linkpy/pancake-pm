@@ -58,6 +58,9 @@ function ppm.init(g)
 
 	ppm.g.config.path = ppm.g.config.path .. ";./sources/?.nelua"
 	ppm.g.config.path = ppm.g.config.path .. ";./sources/?/init.nelua"
+
+	ppm.g.package.path = ppm.g.package.path .. ";./sources/?.lua"
+	ppm.g.package.path = ppm.g.package.path .. ";./sources/?/init.lua"
 end
 
 function ppm.package(p)
@@ -80,6 +83,9 @@ function ppm.package(p)
 
 	ppm.g.config.path = ppm.g.config.path .. ";./packages/" .. n .. "/sources/?.nelua"
 	ppm.g.config.path = ppm.g.config.path .. ";./packages/" .. n .. "/sources/?/init.nelua"
+
+	ppm.g.package.path = ppm.g.package.path .. ";./packages/" .. n .. "/sources/?.lua"
+	ppm.g.package.path = ppm.g.package.path .. ";./packages/" .. n .. "/sources/?/init.lua"
 
 	if fs.isfile(fs.join('packages', n, 'init.lua')) then
 		require('packages.' .. n)
