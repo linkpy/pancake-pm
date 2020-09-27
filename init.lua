@@ -60,11 +60,11 @@ function ppm.init(c)
 end
 
 function ppm.package(p)
-	local n = extract_package_name(n)
+	local n = extract_package_name(p)
 
 	if not fs.isdir(fs.join('packages', n)) then
 		print("PPM: Getting package '" .. p .. "'...")
-		git_clone(n, 'https://github.com/' .. p .. '.git')
+		git_clone(n, 'http://github.com/' .. p .. '.git', 'packages/' .. n)
 
 	elseif ppm.update then
 		print("PPM: Updating package '" .. p .. "'...")
