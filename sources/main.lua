@@ -92,6 +92,7 @@ local function initialize(p)
 
 	file:write("packages/*\n")
 	file:write("!packages/pancake-pm/\n")
+	file:write("nelua_cache/\n")
 
 	chdir(p)
 	os.execute("git init .")
