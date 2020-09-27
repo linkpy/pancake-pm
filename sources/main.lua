@@ -81,6 +81,23 @@ local function initialize(p)
 	file:flush()
 	file:close()
 
+
+	file = io.open(string.format("%s/.gitignore", p), "w")
+
+	if file == nil then
+		print("Failed to initialize package :")
+		print("  Can't write to .gitignore")
+		os.exit(1)
+	end
+
+	file:write("packages/*\n")
+	file:write("!packages/pancake-pm/\n")
+
+	chdir(p)
+	os.execute("git init .")
+	os.execute("git add .")
+	os.execute("git commit -m 'Initial commit.'")
+
 	print("Package initialized.")
 end
 
