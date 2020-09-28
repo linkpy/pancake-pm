@@ -9,35 +9,50 @@ Structure of a package
 ----------------------
 
  - `package-name/` : root directory of the package.
-   - `packages/` : folder containing all fetched packages.
-   - `sources/` : folder containing the package's sources.
-     - `main.nelua` : (optional) main entry point of package.
-   - `build.nelua` : build configuration of the package. loaded by the compiler when the package is registered
-   - `init.lua` : (optional) loaded by the package manager when the package is registered.
+   - `package.lua` : configuration file of the package.
+
+
+Structure of a configuration file
+---------------------------------
+
+The configuration file returns a table which ***MUST*** (not sanitized or type checked) follows the format :
+
+```lua
+
+return {
+	-- Name of the package. Only used for `ppm build`.
+	name = "package-name",
+	-- Automatically generated, but for now unused.
+	author = "username",
+	-- Version of the package (not sanitized or verified, you should use the format X.Y.Z)
+	version = "1.0.0",
+
+	-- Source directory. Injected in the path for '.nelua' files. Can be empty to disable injection.
+	src_dir = "sources/",
+	-- Meta source directory. Injected in the path for '.lua' files and in preprocessor source code. Can be empty to disable injection.
+	meta_dir = "sources/",
+	-- File loaded by the injector. Can be empty to disable.
+	build_cfg = "build.nelua", 
+
+	-- List of dependencies
+	dependencies = {
+		-- Gets the package from the github repo 'username/package-name' as its lastest version (master branch)
+		"username/package-name",
+		-- Same as above, but get the specific version (branch or tag).
+		"username/package-name#version"
+	}
+}
+
+```
 
 
 CLI Tool
 --------
 
- - `ppm init [path]` : initialize a new package at the given path ('.' if not specified)
- - `ppm update [path]` : updates the packages of the package at the given path ('.' if not specified)
- - `ppm build [path]` : build the package at the given path ('.' if not specified)
+ - `ppm help` : prints help text
+ - `ppm init` : initializes a new package
+ - `ppm update` : updates the dependencies
+ - `ppm build` : builds the package
+ - `ppm test` : builds the package with `-DTEST`
 
-
-Usage
------
-
-
-In the generate `build.nelua`, to add a new package just add :
-
-```lua
-## ppm.package('username/repo-name')
-```
-
-This will fetch the package from `https://github.com/username/repo-name.git`.
-
-If the package has the file `package-name/sources/myfile.nelua`, it can be loaded by doing `require 'myfile'` (also works with `.lua` files for the preprocessor).
-
-If the package is loaded by another package, the global PPM_SUB_PACKAGE will be set to true in the preprocessor.
-
-PPM automatically creates a .gitignore file with `packages/*` excluded **but** `packages/pancake-pm` included (removing that folder makes everything to fail) and automatically setup a git repo.
+All of these commands can receive an additional argument, being the path to the package to deal with.

@@ -1,137 +1,133 @@
 
 
 local lfs = require 'lfs'
+local fs = require 'nelua.utils.fs'
+local sstream = require 'nelua.utils.sstream'
+
+local Executer = require 'ppm.executer'
+local Git = require 'ppm.git'
+local DepGraph = require 'ppm.dep-graph'
+local utils = require 'ppm.utils'
+local pkg = require 'ppm.package'
+local cache = require 'ppm.cache'
 
 
-local function git_clone(url, path)
-	local status, errstr, errno = os.execute(string.format("git clone %s %s", url, path))
+local ppm_src_path = ""
 
-	if not status then
-		print(string.format("Failed to clone '%s' :", url))
-		print(errstr)
-		os.exit(1)
+do 
+	local script_path = debug.getinfo(1, 'S').source:sub(2)
+	ppm_src_path = fs.dirname(script_path)
+end
+
+
+
+local function make_nelua_executer(p)
+	cache.path = p
+	cache.check()
+
+	local pkg_cfg = pkg.load_config(p)
+	pkg.fetch_deps(pkg_cfg, false)
+
+	local ex = Executer("nelua", {}, p)
+
+	ex:add_argument(fs.join(ppm_src_path, "runtime/injector.nelua"))
+	ex:add_argument("-o " .. fs.join(p, 'nelua_cache', pkg_cfg.name))
+	return ex:enable_printing()
+end
+
+
+
+local helps = {}
+local handlers = {}
+
+--------------------------------------------------------------------------------
+
+helps.help = {
+	syntax = "",
+	desc = [[Prints this text and exit.]]
+}
+function handlers.help()
+	local ss = sstream()
+
+	ss:add"USAGE: ppm command [...args]\n"
+	ss:add"\n"
+	ss:add"Commands:\n"
+
+	for k, v in pairs(helps) do
+		k = k:gsub("_", "-")
+
+		ss:add"  - "
+		ss:add(k)
+		if v.syntax ~= "" then
+			ss:add(" ")
+			ss:add(v.syntax)
+		end
+		ss:add(": ")
+		ss:add(v.desc)
+		ss:add("\n")
 	end
-end
 
-local function chdir(p)
-	lfs.chdir(p)
-end
+	ss:add"\n"
+	ss:add"Path:\n"
+	ss:add"  All commands can receive an extra argument to define the package's\n"
+	ss:add"path. By default, it is set to the current working directory.\n"
 
-
-
-
-local function print_usage()
-	print("USAGE: ppm command [package_path]")
-	print("")
-	print("Commands :")
-	print("  init : Initialize a new package in [package_path].")
-	print("  update : Updates the dependencies of [package_path].")
-	print("  build : Build the package at [package_path].")
-	print("")
-	print("Package path :")
-	print("  Path to the package. By default, '.'.")
+	print(ss:tostring())
 	os.exit(1)
 end
 
-local function initialize(p)
-	local status, errstr, errno = os.execute(string.format("mkdir -p %s/packages", p))
+--------------------------------------------------------------------------------
+
+helps.init = {
+	syntax = "",
+	desc = [[Initializes a new package.]]
+}
+function handlers.init(path)
+	require('ppm.package-creator')(path)
+end
+
+--------------------------------------------------------------------------------
+
+helps.update = {
+	syntax = "",
+	desc = [[Updates all the dependencies.]]
+}
+function handlers.update(p)
+	cache.path = p
+	cache.check()
+
+	local pkg_cfg = pkg.load_config(p)
+	pkg.fetch_deps(pkg_cfg, true)
+end
+
+--------------------------------------------------------------------------------
+
+helps.build = {
+	syntax = "",
+	desc = [[Builds the package.]]
+}
+function handlers.build(p)
+	local status, err = make_nelua_executer(p):execute()
 
 	if not status then
-		print("Failed to initialize package : ")
-		print(errstr)
+		print("\nBuild failed: ")
+		print(err)
 		os.exit(1)
 	end
+end
 
-	status, errstr, errno = os.execute(string.format("mkdir -p %s/sources", p))
+--------------------------------------------------------------------------------
+
+helps.test = {
+	syntax = "",
+	desc = [[Builds the pacakge in test mode. Defines the global TEST in the preprocessor.]]
+}
+function handlers.test(p)
+	local status, err = make_nelua_executer(p):add_argument('-DTEST'):execute()
 
 	if not status then
-		print("Failed to initialize package : ")
-		print(errstr)
-		os.exit(1)
-	end
-
-	git_clone("https://github.com/linkpy/pancake-pm.git", string.format("%s/packages/pancake-pm", p))
-
-	local file = io.open(string.format("%s/build.nelua", p), "w")
-
-	if file == nil then
-		print("Failed to initialize package :")
-		print("  Can't write to build.nelua")
-		os.exit(1)
-	end
-
-	file:write("\n##[[\n\n")
-	file:write("ppm = require 'packages/pancake-pm'\n")
-	file:write("ppm.init(_ENV)\n")
-	file:write("ppm.package('linkpy/pancake-pm')\n\n]]\n\n")
-	file:write("require 'main'")
-	file:flush()
-	file:close()
-
-
-	file = io.open(string.format("%s/sources/main.nelua", p), "w")
-
-	if file == nil then
-		print("Failed to initialize package :")
-		print("  Can't write to sources/main.nelua")
-		os.exit(1)
-	end
-
-	file:write("\n")
-	file:flush()
-	file:close()
-
-
-	file = io.open(string.format("%s/.gitignore", p), "w")
-
-	if file == nil then
-		print("Failed to initialize package :")
-		print("  Can't write to .gitignore")
-		os.exit(1)
-	end
-
-	file:write("packages/*\n")
-	file:write("!packages/pancake-pm/\n")
-	file:write("nelua_cache/\n")
-
-	chdir(p)
-	os.execute("git init .")
-	os.execute("git add .")
-	os.execute("git commit -m 'Initial commit.'")
-
-	print("Package initialized.")
-end
-
-local function update(p)
-	chdir(p .. "/packages/pancake-pm")
-	local status, errstr, errno = os.execute("git pull")
-
-	if not status then
-		print("Failed to update PPM :")
-		print(errstr)
-		os.exit(1)
-	end
-
-
-	chdir("../..")
-
-	local status, errstr, errno = os.execute("nelua -a -DPPM_UPDATE build.nelua")
-
-	if not status then
-		print("Failed to update packages :")
-		print(errstr)
-		os.exit(1)
-	end
-end
-
-local function build(p)
-	chdir(p)
-
-	local status, errstr, errno = os.execute("nelua build.nelua")
-
-	if not status then
-		print("Failed to build packages :")
-		print(errstr)
+		print("\nBuild failed: ")
+		print(err)
 		os.exit(1)
 	end
 end
@@ -141,25 +137,48 @@ end
 
 
 
+local function main()
+	if #arg < 4 then
+		print_usage()
+	end
 
-if #arg < 3 or #arg > 4 then
-	print_usage()
+	local command = arg[4]:gsub("-", "_")
+	local handler = handlers[command]
+	local cwd, err = lfs.currentdir()
+
+	if not cwd then
+		print("Failed to get current working directory: " .. err)
+		os.exit(1)
+	end
+
+	if not handler then
+		handlers.help() -- exit
+	end
+
+	local nparams = debug.getinfo(handler).nparams
+
+	if nparams == 0 then -- help
+		handler()
+	else
+		local params = {}
+		local param_count = nparams - 1
+
+		for i=5,#arg do
+			table.insert(params, arg[i])
+		end
+
+		if #params < param_count or #params > nparams then
+			handlers.help()
+		end
+
+		if #params < nparams then
+			table.insert(params, cwd)
+		end
+
+		handler(table.unpack(params))
+	end
 end
 
-local command = arg[3]
-local path = '.'
-
-if #arg == 4 then
-	path = arg[4]
-end
 
 
-if command == "init" then
-	initialize(path)
-elseif command == "update" then
-	update(path)
-elseif command == "build" then
-	build(path)
-else
-	print_usage()
-end
+main()

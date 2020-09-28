@@ -1,5 +1,7 @@
 #!/bin/bash
 
-cd $(dirname "$0")
+ppm_dir=$(dirname "$0")
+cwd=$(pwd)
 
-nelua --script sources/main.lua $@
+
+nelua --script $ppm_dir/sources/main.lua -- $@
