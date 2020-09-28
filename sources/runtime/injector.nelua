@@ -19,31 +19,33 @@ static_assert(status, "Failed to load the package's configuration: " .. tostring
 
 config.path = config.path .. ";./ppm_cache/?.nelua"
 
-for name in lfs.dir('ppm_cache') do
-	if name:sub(1,1) ~= "." then
-		local folder = fs.join('ppm_cache', name)
+if fs.isdir("ppm_cache") then
+	for name in lfs.dir('ppm_cache') do
+		if name:sub(1,1) ~= "." then
+			local folder = fs.join('ppm_cache', name)
 
-		IN_BUILD = true
-		local status, pkg = pcall(dofile, fs.join(folder, 'package.lua'))
-		IN_BUILD = nil
+			IN_BUILD = true
+			local status, pkg = pcall(dofile, fs.join(folder, 'package.lua'))
+			IN_BUILD = nil
 
-		static_assert(status, "Failed to load the configuration file of '" .. name .. "': " .. tostring(pkg))
+			static_assert(status, "Failed to load the configuration file of '" .. name .. "': " .. tostring(pkg))
 
 
-		local build_cfg = pkg.build_cfg
+			local build_cfg = pkg.build_cfg
 
-		if pkg.src_dir ~= "" then
-			extend_path(config, fs.join(".", folder, pkg.src_dir), "nelua")
-		end
+			if pkg.src_dir ~= "" then
+				extend_path(config, fs.join(".", folder, pkg.src_dir), "nelua")
+			end
 
-		if pkg.meta_dir ~= "" then
-			extend_path(package, fs.join(".", folder, pkg.meta_dir), "lua")
-		end
+			if pkg.meta_dir ~= "" then
+				extend_path(package, fs.join(".", folder, pkg.meta_dir), "lua")
+			end
 
-		if build_cfg ~= "" then
-			local import_path = folder .. "/" .. build_cfg:sub(1, -7)
-			import_path = import_path:gsub("/", ".")
-			table.insert(build_cfgs, import_path)
+			if build_cfg ~= "" then
+				local import_path = folder .. "/" .. build_cfg:sub(1, -7)
+				import_path = import_path:gsub("/", ".")
+				table.insert(build_cfgs, import_path)
+			end
 		end
 	end
 end
