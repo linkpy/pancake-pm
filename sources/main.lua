@@ -104,7 +104,7 @@ end
 
 local function update(p)
 	chdir(p .. "/packages/pancake-pm")
-	local status, errstr, errno = os.excute("git pull")
+	local status, errstr, errno = os.execute("git pull")
 
 	if not status then
 		print("Failed to update PPM :")

@@ -91,15 +91,16 @@ function ppm.package(p)
 		require('packages.' .. n)
 	end
 
-
-	ppm.g.PPM_SUB_PACKAGE = true
-	ppm.g.inject_astnode(
-		ppm.g.aster.Call{
-			{ppm.g.aster.String{"packages." .. n .. ".build"}}, 
-			ppm.g.aster.Id{"require"}
-		}
-	)
-	ppm.g.PPM_SUB_PACKAGE = nil
+	if fs.isfile(fs.join('packages', n, 'build.nelua')) then
+		ppm.g.PPM_SUB_PACKAGE = true
+		ppm.g.inject_astnode(
+			ppm.g.aster.Call{
+				{ppm.g.aster.String{"packages." .. n .. ".build"}}, 
+				ppm.g.aster.Id{"require"}
+			}
+		)
+		ppm.g.PPM_SUB_PACKAGE = nil
+	end
 
 	ppm.cache[p] = true
 end
