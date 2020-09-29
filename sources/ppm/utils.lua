@@ -83,7 +83,7 @@ function utils.table_to_file(t, ss, inden)
 	for k, v in pairs(t) do
 		if type(k) == "string" then
 			ss:add(string.rep('\t', inden))
-			utils.value_to_file(k, ss, inden)
+			ss:add(k)
 			ss:add(" = ")
 			utils.value_to_file(v, ss, inden)
 			ss:add(",\n")

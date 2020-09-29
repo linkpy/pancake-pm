@@ -25,10 +25,7 @@ return function(path)
 	printv("Writing initial files...")
 
 	utils.write_file(fs.join(path, "package.lua"), [==[
-ppm.include_sources("sources/") -- Adds the given folder to the path.
-
--- ppm.add_github_dependency("username/package-name") -- get latest version from github
--- ppm.add_github_dependency("username/package-name#v1.2.*") -- get the given version from github
+ppm.include_sources("sources/")
 ]==])
 
 	utils.write_file(fs.join(path, "sources/main.nelua"), [==[
