@@ -1,7 +1,10 @@
 
 local tabler = require 'nelua.utils.tabler'
 local class = require 'nelua.utils.class'
+local stringer = require 'nelua.utils.stringer'
+
 local Executer = require 'ppm.executer'
+local SemVer = require 'thirdparty.semver'
 
 
 
@@ -48,11 +51,6 @@ function Git.clone(url, target)
 	assert(type(url) == 'string', "Argument #1 (url) must be a string")
 	assert(type(target) == 'string', "Argument #2 (target) must be a string (if provided)")
 
-	-- github shortcut
-	if url:find("^http") ~= 1 then
-		url = "https://github.com/" .. url .. ".git"
-	end
-
 
 	local args = {"clone", url}
 
@@ -65,6 +63,62 @@ end
 
 function Git.pull()
 	return Git("git", {"pull"})
+end
+
+function Git.fetch(r, b)
+	return Git('git', {"fetch", r, b})
+end
+
+function Git.checkout(target)
+	return Git('git', {'checkout', target})
+end
+
+
+
+function Git.get_commit_hash(p)
+	local out, err = Executer.exec("git", {"log", "-n1", '--pretty="%h"'}, p)
+
+	if not out then
+		return nil, err
+	end
+
+	return out:sub(1,7)
+end
+
+function Git.get_tag(p)
+	local hash, err = Git.get_commit_hash(p)
+
+	if not hash then
+		return nil, err
+	end
+
+	local out, err = Executer.exec("git", {"describe", "--exact-match", "--tags", hash}, p)
+
+	if not out then
+		return nil, err
+	end
+
+	return stringer.split(out, "\n")[1]
+end
+
+function Git.fetch_remote_tags(url)
+	local out, err = Executer.exec("git", {"ls-remote", "--tags", url})
+
+	if not out then
+		return nil, err
+	end
+
+	local result = {}
+
+	for i, line in ipairs(stringer.split(out, '\n')) do
+		local ref = stringer.split(line, '\t')[2]
+
+		if stringer.startswith(ref, 'refs/tags/v') and not stringer.endswith(ref, "^{}") then
+			table.insert(result, SemVer(ref:sub(12, -1)))
+		end
+	end
+
+	return result
 end
 
 

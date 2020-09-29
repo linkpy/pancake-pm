@@ -1,5 +1,5 @@
-Pancake Package Manager for Nelua
-=================================
+Pancake Package Manager
+=======================
 
 
 Simple package manager for Nelua.
@@ -12,47 +12,38 @@ Structure of a package
    - `package.lua` : configuration file of the package.
 
 
+How to use
+----------
+
+ 1. `ppm new mypackage` : this will create a new package in the folder 'mypackage' ;
+ 2. Add your dependencies in `mypackage/package.lua` ;
+ 3. `ppm update` : this will fetches the dependencies and generates the package's nelua configuration.
+ 4. `nelua sources/main.nelua` : compiles and run your package.
+
+
 Structure of a configuration file
 ---------------------------------
 
-The configuration file returns a table which ***MUST*** (not sanitized or type checked) follows the format :
+The configuration file is a simple Lua file with the `ppm` global variable. Example of a configuration file : 
 
 ```lua
+-- Includes the given folder into the path when nelua is ran in this folder.
+ppm.include_sources('sources/')
 
-return {
-	-- Name of the package. Only used for `ppm build`.
-	name = "package-name",
-	-- Automatically generated, but for now unused.
-	author = "username",
-	-- Version of the package (not sanitized or verified, you should use the format X.Y.Z)
-	version = "1.0.0",
-
-	-- Source directory. Injected in the path for '.nelua' files. Can be empty to disable injection.
-	src_dir = "sources/",
-	-- Meta source directory. Injected in the path for '.lua' files and in preprocessor source code. Can be empty to disable injection.
-	meta_dir = "sources/",
-	-- File loaded by the injector. Can be empty to disable.
-	build_cfg = "build.nelua", 
-
-	-- List of dependencies
-	dependencies = {
-		-- Gets the package from the github repo 'username/package-name' as its lastest version (master branch)
-		"username/package-name",
-		-- Same as above, but get the specific version (branch or tag).
-		"username/package-name#version"
-	}
-}
-
+-- Automatically fetches the sources of that extension from the given website/url.
+-- A version must be specified (after #) which is a tag from the package repository.
+ppm.add_dependency("github:username/repo#v1.2.3")
+ppm.add_dependency("gitlab:username/repo#v1.2.3")
+ppm.add_dependency("https://website.com/mypackage.git#v1.2.3")
 ```
+
+Note : The configuration file is not ran or loaded by Nelua when building the package.
 
 
 CLI Tool
 --------
 
  - `ppm help` : prints help text
- - `ppm init` : initializes a new package
- - `ppm update` : updates the dependencies
- - `ppm build` : builds the package
- - `ppm test` : builds the package with `-DTEST`
-
-All of these commands can receive an additional argument, being the path to the package to deal with.
+ - `ppm new [path]` : creates a new package
+ - `ppm update [force] [path]` : updates the dependencies
+ - `ppm clean [path]` : removes the caches folders

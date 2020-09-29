@@ -1,38 +1,31 @@
 
 
+require 'ppm.debug'
+
 local lfs = require 'lfs'
 local fs = require 'nelua.utils.fs'
 local sstream = require 'nelua.utils.sstream'
 
-local Executer = require 'ppm.executer'
-local Git = require 'ppm.git'
-local DepGraph = require 'ppm.dep-graph'
 local utils = require 'ppm.utils'
 local pkg = require 'ppm.package'
 local cache = require 'ppm.cache'
+local interface = require 'ppm.interface'
 
-
-local ppm_src_path = ""
-
-do 
-	local script_path = debug.getinfo(1, 'S').source:sub(2)
-	ppm_src_path = fs.dirname(script_path)
-end
+local Executer = require 'ppm.executer'
 
 
 
-local function make_nelua_executer(p)
-	cache.path = p
-	cache.check()
+local function path_or_cwd(p)
+	if p then return p end
 
-	local pkg_cfg = pkg.load_config(p)
-	pkg.fetch_deps(pkg_cfg, false)
+	local cwd, err = lfs.currentdir()
 
-	local ex = Executer("nelua", {}, p)
+	if not cwd then
+		print("Failed to get current working directory: " .. err)
+		os.exit(1)
+	end
 
-	ex:add_argument(fs.join(ppm_src_path, "runtime/injector.nelua"))
-	ex:add_argument("-o " .. fs.join(p, 'nelua_cache', pkg_cfg.name))
-	return ex:enable_printing()
+	return cwd
 end
 
 
@@ -78,59 +71,73 @@ end
 
 --------------------------------------------------------------------------------
 
-helps.init = {
-	syntax = "",
+helps.new = {
+	syntax = "[path]",
 	desc = [[Initializes a new package.]]
 }
-function handlers.init(path)
+function handlers.new(path)
+	path = path_or_cwd(path)
+
 	require('ppm.package-creator')(path)
 end
 
 --------------------------------------------------------------------------------
 
 helps.update = {
-	syntax = "",
+	syntax = "[force] [path]",
 	desc = [[Updates all the dependencies.]]
 }
-function handlers.update(p)
-	cache.path = p
+function handlers.update(a, b)
+	local force = false
+	local path = nil
+
+	if a then
+		force = a
+		path = path_or_cwd(b)
+	else
+		path = path_or_cwd(a)
+	end
+
+
+	cache.path = path
 	cache.check()
 
-	local pkg_cfg = pkg.load_config(p)
-	pkg.fetch_deps(pkg_cfg, true)
+	local localpkg = pkg.Package(".")
+	localpkg.path = path
+
+	-- global ppm
+	ppm = require 'ppm.interface'
+
+	localpkg:update(force)
+
+	local fg_path = fs.join(path, '.neluacfg.ppm.lua')
+	local cfg = {}
+	cfg.cache_dir = fs.join(path, "nelua_cache")
+	cfg.add_path = ppm.included_paths
+
+	utils.write_file(fg_path, 'return ' .. utils.table_to_file(cfg) .. "\n")
+
+	print("Update successful")
 end
 
 --------------------------------------------------------------------------------
 
-helps.build = {
-	syntax = "",
-	desc = [[Builds the package.]]
+helps.clean = {
+	syntax = "[path]",
+	desc = [[Remove all uneccesary files. Empties the caches.]]
 }
-function handlers.build(p)
-	local status, err = make_nelua_executer(p):execute()
+function handlers.clean(p)
+	p = path_or_cwd(p)
+	
+	local ok, err = Executer.exec('rm', {"-rf", fs.join(p, "ppm_cache")})
+	if not ok then error("Failed to clean PPM's cache : " .. err) end
 
-	if not status then
-		print("\nBuild failed: ")
-		print(err)
-		os.exit(1)
-	end
+	local ok, err = Executer.exec('rm', {"-rf", fs.join(p, "nelua_cache")})
+	if not ok then error("Failed to clean Nelua's cache : " .. err) end
+
+	print("Cleaning done.")
 end
 
---------------------------------------------------------------------------------
-
-helps.test = {
-	syntax = "",
-	desc = [[Builds the pacakge in test mode. Defines the global TEST in the preprocessor.]]
-}
-function handlers.test(p)
-	local status, err = make_nelua_executer(p):add_argument('-DTEST'):execute()
-
-	if not status then
-		print("\nBuild failed: ")
-		print(err)
-		os.exit(1)
-	end
-end
 
 
 
@@ -139,46 +146,28 @@ end
 
 local function main()
 	if #arg < 4 then
-		print_usage()
+		print("No command given.")
+		handlers.help()
 	end
 
 	local command = arg[4]:gsub("-", "_")
 	local handler = handlers[command]
-	local cwd, err = lfs.currentdir()
 
-	if not cwd then
-		print("Failed to get current working directory: " .. err)
-		os.exit(1)
-	end
 
 	if not handler then
+		print(command .. ": Not a command")
 		handlers.help() -- exit
 	end
 
-	local nparams = debug.getinfo(handler).nparams
 
-	if nparams == 0 then -- help
-		handler()
-	else
-		local params = {}
-		local param_count = nparams - 1
+	local params = {}
 
-		for i=5,#arg do
-			table.insert(params, arg[i])
-		end
-
-		if #params < param_count or #params > nparams then
-			handlers.help()
-		end
-
-		if #params < nparams then
-			table.insert(params, cwd)
-		end
-
-		handler(table.unpack(params))
+	for i=5,#arg do
+		table.insert(params, arg[i])
 	end
-end
 
+	handler(table.unpack(params))
+end
 
 
 main()

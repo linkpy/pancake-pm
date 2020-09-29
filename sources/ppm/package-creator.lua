@@ -10,6 +10,8 @@ local utils = require 'ppm/utils'
 
 
 return function(path)
+	printv("Creating a new package at '" .. path .. "'...")
+
 	local status, err = Executer.exec("mkdir", {
 		"-p", fs.join(path, "sources")
 	})
@@ -20,45 +22,29 @@ return function(path)
 		os.exit(1)
 	end
 
-
-	utils.write_file(fs.join(path, "build.nelua"), [==[
-#[[
-
--- Put your build configuration here
-
-]]
-]==])
+	printv("Writing initial files...")
 
 	utils.write_file(fs.join(path, "package.lua"), [==[
-return {
-	name = "mypackage",
-	author = "you",
-	version = "1.0",
+ppm.include_sources("sources/") -- Adds the given folder to the path.
 
-	src_dir = "sources/",  -- for .nelua files (can be "")
-	meta_dir = "sources/", -- for .lua files (during preprocessing) (can be "")
-	build_cfg = "build.nelua", -- can be ""
-	dependencies = {
-		-- "username/package-name" -- get latest version from github
-		-- "username/package-name#branch-or-tag" -- get specific version from github
-		-- other git aren't supported yet, sry
-	}
-}
+-- ppm.add_github_dependency("username/package-name") -- get latest version from github
+-- ppm.add_github_dependency("username/package-name#v1.2.*") -- get the given version from github
 ]==])
 
 	utils.write_file(fs.join(path, "sources/main.nelua"), [==[
-
 print "Hello world!"
-
 ]==])
 
 	utils.write_file(fs.join(path, ".gitignore"), [==[
 nelua_cache
 ppm_cache
+.neluacfg.*
 ]==])
 
 
 	if Git.has() then
+
+		printv("Initializing git in the package...")
 
 		local status, err = Git.init():set_directory(path):execute()
 
