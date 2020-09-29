@@ -88,15 +88,8 @@ helps.update = {
 	desc = [[Updates all the dependencies.]]
 }
 function handlers.update(a, b)
-	local force = false
-	local path = nil
-
-	if a then
-		force = a
-		path = path_or_cwd(b)
-	else
-		path = path_or_cwd(a)
-	end
+	local force = not not a
+	local path = path_or_cwd(b)
 
 
 	cache.path = path
@@ -107,6 +100,8 @@ function handlers.update(a, b)
 
 	-- global ppm
 	ppm = require 'ppm.interface'
+	ppm.root_path = path
+	ppm.current_path = path
 
 	localpkg:update(force)
 

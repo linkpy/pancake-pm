@@ -205,23 +205,22 @@ function Package:update(force)
 	NAMESPACE = "pkg(" .. self.name .. ")"
 	printv("Updating package '" .. self.name .. "'...")
 
+	local ok,err
+
 	if self.descriptor ~= nil then
 		if not force and not self:does_need_update() then
 			printv("Package up to date (already up to date).")
-			return true
-		end
+		else		
+			printv(".... Fetching package...")
+			if self:is_cached() then
+				ok, err = self:_checkout()
+			else
+				ok, err = self:_fetch()
+			end
 
-		local ok,err
-
-		printv(".... Fetching package...")
-		if self:is_cached() then
-			ok, err = self:_checkout()
-		else
-			ok, err = self:_fetch()
-		end
-
-		if not ok then 
-			error("Failed to update package '" .. self.name .. "': " .. err)
+			if not ok then 
+				error("Failed to update package '" .. self.name .. "': " .. err)
+			end
 		end
 	end
 

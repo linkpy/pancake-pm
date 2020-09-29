@@ -9,6 +9,7 @@ local pkg = require 'ppm.package'
 
 local ppm = {}
 ppm.root_path = ""
+ppm.current_path = ""
 ppm.included_paths = {}
 
 ppm.package_cache = {}
@@ -28,7 +29,7 @@ end
 
 
 function ppm.include_sources(p)
-	table.insert(ppm.included_paths, fs.join(ppm.root_path, p))
+	table.insert(ppm.included_paths, fs.join(ppm.current_path, p))
 end
 
 function ppm.add_dependency(p)
@@ -51,6 +52,7 @@ function ppm.add_dependency(p)
 
 	else
 		ppm.package_cache[pk.name] = pk
+		ppm.current_path = fs.join(ppm.root_path, "ppm_cache", pk.name)
 		pk:update(ppm.force_update)
 	end
 end
