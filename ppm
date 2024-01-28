@@ -3,5 +3,4 @@
 ppm_dir=$(dirname "$0")
 cwd=$(pwd)
 
-
-nelua --script $ppm_dir/sources/main.lua -- $@
+nelua --add-path ${ppm_dir}/sources --script $ppm_dir/sources/main.lua -- $@
