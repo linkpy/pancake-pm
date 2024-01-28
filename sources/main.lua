@@ -140,12 +140,12 @@ end
 
 
 local function main()
-	if #arg < 4 then
+	if #arg < 1 then
 		print("No command given.")
 		handlers.help()
 	end
 
-	local command = arg[4]:gsub("-", "_")
+	local command = arg[1]:gsub("-", "_")
 	local handler = handlers[command]
 
 
